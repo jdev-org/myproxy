@@ -1,0 +1,19 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>fr.landel</groupId>
+	<artifactId>myproxy</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+
+	<name>My Proxy</name>
+	<description>A local proxy to simplify the use of enterprise proxy</description>
+
+	<properties>
+		<jdk.version>11</jdk.version>
+		<maven.compiler.source>${jdk.version}</maven.compiler.source>
+		<maven.compiler.target>${jdk.version}</maven.compiler.target>
+		<maven.compiler.release>${jdk.version}</maven.compiler.release>
+	</properties>
+</project>

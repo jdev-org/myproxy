@@ -1,0 +1,79 @@
+  {
+	"id": "root",
+	"schema": {
+		"type": "node",
+		"required": true
+	},
+	"children": [
+		{
+			"id": "proxy",
+			"schema": {
+				"type": "node",
+				"required": true
+			},
+			"children": [
+				{
+					"id": "port",
+					"schema": {
+						"type": "integer",
+						"required": false,
+						"default": 3128
+					}
+				},
+				{
+					"id": "ssl",
+					"schema": {
+						"type": "node",
+						"required": false
+					},
+					"children": [
+						{
+							"id": "protocol",
+							"schema": {
+								"type": "enum",
+								"required": false,
+								"default": "TLSv1.2",
+								"list": [
+									"TLSv1.2",
+									"TLSv1.1",
+									"TLSv1",
+									"SSLv3"
+								]
+							}
+						},
+						{
+							"id": "keystore-file",
+							"schema": {
+								"type": "file",
+								"required": true
+							}
+						},
+						{
+							"id": "keystore-pass",
+							"schema": {
+								"type": "string",
+								"required": true
+							}
+						},
+						{
+							"id": "key-alias",
+							"schema": {
+								"type": "string",
+								"required": true
+							}
+						}
+					]
+				},
+				{
+					"id": "timeout",
+					"schema": {
+						"type": "duration",
+						"required": false,
+						"default": "PT30S"
+					}
+				}
+			]
+		}
+	]
+}
+ 

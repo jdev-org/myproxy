@@ -1,0 +1,351 @@
+{
+	"comment": {
+		"TODO": "FIRST DRAFT",
+		"profiles-rules": {
+			"url": "mandatory, supports: XML"
+		},
+		"shortcuts": {
+			"urls": [],
+			"executables": [
+				{
+					"pattern-mode": "supports: wildcard|regexp|plain",
+					"patterns": "supports: string or array"
+				}
+			]
+		},
+		"comment": "used to map into http into https to avoid browser error with http images in https page ? bad but useful ?",
+		"define-supported-replacement-keys": "like ip, local hour, token... ?"
+	},
+	"proxy": {
+		"port": 3128,
+		"ssl": {
+			"protocol": "TLS",
+			"keystore-file": "",
+			"keystore-pass": "",
+			"key-alias": ""
+		},
+		"timeout": 30000,
+		"comment-retry": "number of retries on error, ex: 502",
+		"retry": 3,
+		"max-threads": 150,
+		"comment-pac": "download the good proxy pac following user, EFS, workstation type, lan ?",
+		"actions": {
+			"test-rate": "PT15S",
+			"if": [
+				{
+					"test": "test ip with internet -> lan",
+					"proxy": "none",
+					"refresh-rate": "P1D",
+					"action": "change dns"
+				},
+				{
+					"test": "test ip with internet -> wifi / lan (agence)",
+					"proxy": "http://pac.mud.arkea.com:8080/platine/proxy.pac",
+					"refresh-rate": "P1D",
+					"action": "change dns"
+				},
+				{
+					"test": "test ip with internet -> wifi / lan (service centraux)",
+					"proxy": "http://pac.mud.arkea.com:8080/sc/proxy.pac",
+					"refresh-rate": "P1D",
+					"action": "change dns"
+				}
+			]
+		}
+	},
+	"log": {
+		"path": "c:/POSTE/proxea/proxea-\\{%yyyy%MM%dd}.log",
+		"level": "ERROR",
+		"max-size": "10M",
+		"max-index": 10,
+		"flush": {
+			"entries": 50,
+			"delay": "PT10S"
+		}
+	},
+	"monitor": {
+		"comment": "global, by website, by files size, by type",
+		"path": "c:/POSTE/proxea/stats-\\{%yyyy%MM%dd}.log",
+		"latency": true,
+		"speed": true
+	},
+	"cache": [
+		{
+			"id": "cas-profile",
+			"type": "xml",
+			"url": "file:///c:/Users/%username%/CAS_Profile.xml",
+			"refresh-rate": "P1D",
+			"parser": [
+				{
+					"id": "habilitation",
+					"single": false,
+					"root": "/habilitations/habilitation",
+					"object": [
+						{
+							"id": "key",
+							"single": true,
+							"xpath": "/@key",
+							"required": true,
+							"type": "string",
+							"pattern": "[A-Z]{1-8}",
+							"format": "trim(_)"
+						},
+						{
+							"id": "level",
+							"single": true,
+							"xpath": "/@value1",
+							"required": false,
+							"type": "integer",
+							"default": 0
+						},
+						{
+							"id": "value",
+							"single": true,
+							"xpath": "/@value2",
+							"required": false,
+							"type": "string"
+						}
+					]
+				},
+				{
+					"id": "profile",
+					"type": "unique",
+					"root": "/habilitationsGlobal",
+					"object": [
+						{
+							"id": "val",
+							"single": false,
+							"xpath": "/@*[starts-with(name(), 'val')]",
+							"required": false,
+							"type": "string",
+							"pattern": "[A-Z]{1-8}",
+							"format": "trim(_)"
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "token",
+			"type": "json",
+			"url": "file:///c:/Users/%username%/token.json",
+			"refresh-rate": "PT1H",
+			"parser": {
+				"id": "token",
+				"single": true,
+				"xpath": "/token",
+				"required": true,
+				"type": "string",
+				"format": "trim(_)"
+			}
+		},
+		{
+			"id": "debra",
+			"type": "json",
+			"url": "https://menusapi.intra.arkea.com:8443/",
+			"refresh-rate": "PT1H",
+			"cache-on-disk": {
+				"path": "c:/Users/%username%/AppData/local/proxea/debra.json",
+				"timeout": "P7D"
+			}
+		},
+		{
+			"id": "profideo-token",
+			"type": "json",
+			"url": "https://keyprovider.intra.arkea.com:8443/",
+			"refresh-rate": "P1D",
+			"method": "POST",
+			"headers": {
+				"X-TOKEN": "proxy-secret-key"
+			}
+		}
+	],
+	"redirects": [
+		{
+			"id": "go",
+			"patterns": "^http://go/(.*)$",
+			"url": "http://go.intra.arkea.com:8080/\\1"
+		},
+		{
+			"id": "snow",
+			"patterns": "^http://sn/(.*)$",
+			"url": "http://go.intra.arkea.com:8080/snow/\\1"
+		},
+		{
+			"id": "profideo",
+			"comment": "used to hide token in browser",
+			"patterns": "^https://www.profideo.com/contexte\\?.*$",
+			"url": "\\0",
+			"method": "POST",
+			"headers": {
+				"token": "\\{profideo-token/$raw/token}"
+			}
+		},
+		{
+			"id": "calc",
+			"patterns": "^http://exe\/calc$",
+			"path-windows": "calc",
+			"path-unix": "xcalc",
+			"response": {
+				"asynchronous": true,
+				"http-code": 200,
+				"path": "file:///c:/response200.html",
+				"refresh-rate": "P1D"
+			},
+			"comment-rules": "supports: or, xor, and, not",
+			"rules": [
+				{
+					"or": [
+						{
+							"cache-ref": "cas-profile/habilitation",
+							"key": "CALC",
+							"level": 200,
+							"value": "RUN"
+						},
+						{
+							"not": {
+								"cache-ref": "cas-profile/habilitationsGlobal",
+								"key": "GUEST"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "restart",
+			"patterns": "^http://restart$",
+			"comment": "future: add online scripts with checked autority like RPM, DEB...",
+			"path-windows": [
+				"powershell",
+				"\"d:/proxea/scripts/restart.ps1\""
+			],
+			"response": {
+				"asynchronous": false,
+				"http-code": "follow-exit-code",
+				"map-output": true,
+				"comment-map-output": "map output following ACCEPT header (JSON/HTML/XML)"
+			}
+		},
+		{
+			"id": "chrome",
+			"patterns-mode": "regexp",
+			"patterns": "^http://localhost:8080/browser\\?execode=CHROM&arg=(.*)$",
+			"response": {
+				"asynchronous": true,
+				"http-code": 302,
+				"path": "classpath:responses/closeMe.html",
+				"refresh-rate": "P1D"
+			},
+			"path-windows": [
+				"C:/Program Files/Google/Application/chrome/chrome.exe",
+				"\\1"
+			]
+		},
+		{
+			"id": "ie",
+			"patterns-mode": "wildcard",
+			"patterns": [
+				"http://test/ChromeToIE.html",
+				"http://app.intra.arkea.com:8080/ChromeToIE.html"
+			],
+			"response": {
+				"asynchronous": true,
+				"http-code": 302,
+				"path": "file:///c:/closeMe.html",
+				"refresh-rate": "P1D"
+			},
+			"path-windows": [
+				"C:/Program Files/Internet Explorer/iexplore.exe",
+				"\\0"
+			],
+			"path-windows-64": [
+				"C:/Program Files (x86)/Internet Explorer/iexplore.exe",
+				"\\0"
+			]
+		}
+	],
+	"startup": {
+		"delay": "PT2M",
+		"from": "\\debra/$raw/data",
+		"comment-expected-format": {
+			"id": {
+				"type": "string",
+				"required": true
+			},
+			"order": {
+				"type": "integer",
+				"required": true
+			},
+			"code": {
+				"type": "string",
+				"required": true
+			},
+			"args": {
+				"comment": "variables are replaced by values, ex: http://www.arkea.com/ip=$ip -> http://www.arkea.com/ip=10.10.10.10",
+				"type": "string",
+				"required": false,
+				"single": false
+			},
+			"asynchronous": {
+				"type": "string",
+				"required": false,
+				"default": true
+			},
+			"timeout": {
+				"comment": "read only if asynchronous is false",
+				"type": "iso8601",
+				"required": false,
+				"default": "PT5S"
+			}
+		}
+	},
+	"whitelist": [
+		{
+			"comment": "avoid the call of urls not in the withelist?",
+			"from": "\\proxy/$raw/data"
+		}
+	],
+	"endpoints": [
+		{
+			"comment": "download jars ? with ETag ? maybe bad idea to include plugins (slow startup, stability...)",
+			"id": "myapp",
+			"port": 8005,
+			"type": "ws",
+			"jar": "d:/proxea/plugins/myapp.jar",
+			"configuration": "classpath:plugins.json",
+			"comment-expected-configuration": {
+				"context": "/myapp",
+				"urls": [
+					{
+						"method": "POST",
+						"path": "customers",
+						"arguments": [
+							{
+								"key": "numPerson",
+								"type": "string"
+							}
+						],
+						"headers": {
+							"Accept": "*/*"
+						},
+						"rules": {
+							"cache-ref": "cas-profile/habilitation",
+							"key": "MYAPP",
+							"level": [
+								200,
+								300
+							],
+							"value": "READ"
+						}
+					}
+				],
+				"rules": {
+					"cache-ref": "cas-profile/habilitation",
+					"key": "MYAPP",
+					"level": 100
+				}
+			}
+		}
+	]
+}
