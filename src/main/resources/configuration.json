@@ -40,13 +40,13 @@
 				},
 				{
 					"test": "test ip with internet -> wifi / lan (agence)",
-					"proxy": "http://pac.mud.arkea.com:8080/platine/proxy.pac",
+					"proxy": "http://proxy.pac",
 					"refresh-rate": "P1D",
 					"action": "change dns"
 				},
 				{
 					"test": "test ip with internet -> wifi / lan (service centraux)",
-					"proxy": "http://pac.mud.arkea.com:8080/sc/proxy.pac",
+					"proxy": "http://proxy.pac",
 					"refresh-rate": "P1D",
 					"action": "change dns"
 				}
@@ -140,19 +140,19 @@
 			}
 		},
 		{
-			"id": "debra",
+			"id": "debranchement",
 			"type": "json",
-			"url": "https://menusapi.intra.arkea.com:8443/",
+			"url": "https://menus",
 			"refresh-rate": "PT1H",
 			"cache-on-disk": {
-				"path": "c:/Users/%username%/AppData/local/proxea/debra.json",
+				"path": "c:/Users/%username%/AppData/local/proxea/debranchement.json",
 				"timeout": "P7D"
 			}
 		},
 		{
-			"id": "profideo-token",
+			"id": "pro-token",
 			"type": "json",
-			"url": "https://keyprovider.intra.arkea.com:8443/",
+			"url": "https://keyprovider/",
 			"refresh-rate": "P1D",
 			"method": "POST",
 			"headers": {
@@ -164,21 +164,21 @@
 		{
 			"id": "go",
 			"patterns": "^http://go/(.*)$",
-			"url": "http://go.intra.arkea.com:8080/\\1"
+			"url": "http://go:8080/\\1"
 		},
 		{
 			"id": "snow",
 			"patterns": "^http://sn/(.*)$",
-			"url": "http://go.intra.arkea.com:8080/snow/\\1"
+			"url": "http://go:8080/snow/\\1"
 		},
 		{
-			"id": "profideo",
+			"id": "pro",
 			"comment": "used to hide token in browser",
-			"patterns": "^https://www.profideo.com/contexte\\?.*$",
+			"patterns": "^https://www.pro.com/contexte\\?.*$",
 			"url": "\\0",
 			"method": "POST",
 			"headers": {
-				"token": "\\{profideo-token/$raw/token}"
+				"token": "\\{pro-token/$raw/token}"
 			}
 		},
 		{
@@ -247,7 +247,7 @@
 			"patterns-mode": "wildcard",
 			"patterns": [
 				"http://test/ChromeToIE.html",
-				"http://app.intra.arkea.com:8080/ChromeToIE.html"
+				"http://app:8080/ChromeToIE.html"
 			],
 			"response": {
 				"asynchronous": true,
@@ -267,7 +267,7 @@
 	],
 	"startup": {
 		"delay": "PT2M",
-		"from": "\\debra/$raw/data",
+		"from": "\\debranchement/$raw/data",
 		"comment-expected-format": {
 			"id": {
 				"type": "string",
@@ -282,7 +282,7 @@
 				"required": true
 			},
 			"args": {
-				"comment": "variables are replaced by values, ex: http://www.arkea.com/ip=$ip -> http://www.arkea.com/ip=10.10.10.10",
+				"comment": "variables are replaced by values, ex: http://www.ark.com/ip=$ip -> http://www.ark.com/ip=10.10.10.10",
 				"type": "string",
 				"required": false,
 				"single": false
