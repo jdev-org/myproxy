@@ -102,7 +102,7 @@ public class RequestHandler implements Runnable {
                 }
 
                 if (urlString.indexOf("http://go/") == 0) {
-                    urlString = "http://go.intra.arkea.com:8080/" + urlString.substring(10);
+                    urlString = "http://go.intra.ark.com:8080/" + urlString.substring(10);
 
                 } else if (urlString.indexOf("http://exe/") == 0) {
                     if ("http://exe/favicon.ico".equals(urlString)) {
