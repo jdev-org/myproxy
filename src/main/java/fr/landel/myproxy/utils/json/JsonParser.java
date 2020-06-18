@@ -104,7 +104,7 @@ public class JsonParser {
 
         try {
 
-            final JsonNode root = new JsonNode();
+            final JsonNode root = new JsonNode(null);
             JsonNode parent = root;
 
             boolean inError = false;
@@ -115,6 +115,7 @@ public class JsonParser {
             boolean expectBoolean = false;
             boolean expectDecimal = false;
             boolean expectString = false;
+            boolean expectComment = false;
 
             boolean inString = false;
             int inStringStart = 0;
@@ -124,6 +125,9 @@ public class JsonParser {
             int inBooleanStart = 0;
             int inDecimalStart = 0;
 
+            boolean inComment = false;
+            int inCommentStart = 0;
+
             char lastOperator = 0;
 
             int nodes = 0;
@@ -131,7 +135,7 @@ public class JsonParser {
             char c;
             while (++st < len) {
                 b = content[st];
-                if (!Character.isWhitespace(b)) {
+                if (!Character.isWhitespace(b) && !inComment) {
                     c = (char) b;
 
                     if (parent == null) {
@@ -172,7 +176,24 @@ public class JsonParser {
                             }
                         }
                     } else if (!inString) {
-                        if (c == ':') {
+                        if (c == '/') {
+                            if (!expectComment) {
+                                expectComment = true;
+                                inCommentStart = st;
+                            } else if (expectComment && inCommentStart != st - 1) {
+                                error(content, st, "invalid json, expects a comment but char '{2}' was found at {3}, extract:\n{1}", c, st);
+                                inError = true;
+                                break;
+                            } else {
+                                inComment = true;
+                                inCommentStart = 0;
+                                expectComment = false;
+                            }
+                        } else if (expectComment) {
+                            error(content, st, "invalid json, expects a comment but char '{2}' was found at {3}, extract:\n{1}", c, st);
+                            inError = true;
+                            break;
+                        } else if (c == ':') {
                             if (!expectColon) {
                                 error(content, st, "invalid json, expects a colon but char '{2}' was found at {3}, extract:\n{1}", c, st);
                                 inError = true;
@@ -289,6 +310,8 @@ public class JsonParser {
                     if (!inString && (c == ',' || c == '{' || c == '}' || c == '[' || c == ']' || c == ':')) {
                         lastOperator = c;
                     }
+                } else if (inComment && (b == '\n' || b == '\r')) {
+                    inComment = false;
                 }
             }
 

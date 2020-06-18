@@ -12,10 +12,10 @@ public class InternalException extends Exception {
     }
 
     public InternalException(final String text, final Object... args) {
-        super(StringUtils.replace(text, args));
+        super(StringUtils.inject(text, args));
     }
 
     public InternalException(final Throwable throwable, final String text, final Object... args) {
-        super(StringUtils.replace(text, args), throwable);
+        super(StringUtils.inject(text, args), throwable);
     }
 }

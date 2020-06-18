@@ -4,6 +4,59 @@
 		"type": "node",
 		"required": true
 	},
+	"ref": [
+		{
+			"id": "id",
+			"schema": {"type": "string", "required": true}
+		},
+		{
+			"id": "single",
+			"schema": {"type": "boolean"}
+		},
+		{
+			"id": "rules",
+			"schema": {"type": "node", "required": true},
+			"children": [
+				{
+					"id": "rule",
+					"schema": {"type": "node", "required": true},
+					"children": [
+						{
+							"id": "cache-ref",
+							"schema": {"type": "ref", "required": true}
+						},
+						{
+							"id": "key",
+							"schema": {"type": "string", "required": true, "pattern": "[A-Z0-9 ]+"}
+						},
+						{
+							"id": "level",
+							"schema": {"type": "integer"}
+						},
+						{
+							"id": "value",
+							"schema": {"type": "string", "pattern": "[A-Z0-9 ]+"}
+						}
+					]
+				},
+				{
+					"id": "not",
+					"schema": {"type": "node"},
+					"children": ["@rule", "@or", "@and"]
+				},
+				{
+					"id": "or",
+					"schema": {"type": "node", "check": "$count>=2"},
+					"children": ["@rule", "@or", "@and", "@not"]
+				},
+				{
+					"id": "and",
+					"schema": {"type": "node"},
+					"children": ["@rule", "@or", "@and", "@not"]
+				}
+			]
+		}
+	],
 	"children": [
 		{
 			"id": "proxy",
@@ -16,22 +69,19 @@
 					"id": "port",
 					"schema": {
 						"type": "integer",
-						"required": false,
 						"default": 3128
 					}
 				},
 				{
 					"id": "ssl",
 					"schema": {
-						"type": "node",
-						"required": false
+						"type": "node"
 					},
 					"children": [
 						{
 							"id": "protocol",
 							"schema": {
 								"type": "enum",
-								"required": false,
 								"default": "TLSv1.2",
 								"list": [
 									"TLSv1.2",
@@ -68,11 +118,82 @@
 					"id": "timeout",
 					"schema": {
 						"type": "duration",
-						"required": false,
 						"default": "PT30S"
 					}
 				}
 			]
+		},
+		{
+			"id": "cache",
+			"schema": {
+				"type": "array"
+			},
+			"children": [{
+				"id": "cache-object",
+				"children": [
+					{
+						"ref": "@id",
+						"comment": "override @id",
+						"id": "id"
+					},
+					{
+						"id": "type",
+						"schema": {"type": "enum", "required": true, "list": ["json", "xml", "yaml", "properties"]}
+					},
+					{
+						"id": "url",
+						"schema": {"type": "url", "required": true}
+					},
+					{
+						"id": "refresh-rate",
+						"schema": {"type": "duration", "def": "P1D"}
+					},
+					{
+						"id": "parser",
+						"schema": {"type": "array", "required": true},
+						"children": [
+							"@id",
+							"@single",
+							{
+								"id": "root",
+								"schema": {"type": "string", "required": true}
+							},
+							{
+								"id": "objects",
+								"schema": {"type": "array", "required": true},
+								"children": [
+									{
+										"id": "object-json",
+										"schema": {"type": "node", "required": true, "if": "../../../type=json"},
+										"children": [
+											"@id",
+											"@single",
+											{
+												"id": "xpath",
+												"schema": {"required": true}
+											},
+											{
+												"id": "required",
+												"schema": {"type": "boolean"}
+											},
+											{
+												"id": "type",
+												"schema": {"type": "enum", "default": "string", "list": ["string", "integer"]}
+											},
+											{
+												"id": "pattern"
+											},
+											{
+												"id": "format"
+											}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}]
 		}
 	]
 }

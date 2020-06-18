@@ -9,6 +9,7 @@ import fr.landel.myproxy.utils.CastUtils;
 import fr.landel.myproxy.utils.InternalException;
 import fr.landel.myproxy.utils.json.JsonArray;
 import fr.landel.myproxy.utils.json.JsonNode;
+import fr.landel.myproxy.utils.json.JsonObject;
 import fr.landel.myproxy.utils.json.JsonParser;
 import fr.landel.myproxy.utils.json.JsonType;
 
@@ -36,8 +37,25 @@ public class JsonSchema {
     private static JsonSchemaNode map(final JsonNode jsonNode) throws InternalException {
         final var map = jsonNode.getChildren();
         final var id = map.get(ID);
-        final var schema = map.get(SCHEMA);
+        var schema = map.get(SCHEMA);
         final var children = map.get(CHILDREN);
+
+        // defines default
+        if (schema == null) {
+            // string
+            if (children == null) {
+                schema = new JsonObject<>(id.getParent(), JsonType.NODE, new JsonNode(id.getParent()).setChild("type", JsonType.STRING, "string"));
+            } // node
+            else {
+                schema = new JsonObject<>(id.getParent(), JsonType.NODE, new JsonNode(id.getParent()).setChild("type", JsonType.STRING, "node"));
+            }
+        } else if (children == null) {
+            final JsonNode node = (JsonNode) schema.getValue();
+            var type = node.getChildren().get("type");
+            if (type == null) {
+                node.getChildren().put("type", new JsonObject<>(id.getParent(), JsonType.STRING, "string"));
+            }
+        }
 
         if (id == null) {
             throw new InternalException("invalid schema, 'id' is not defined");
@@ -45,9 +63,9 @@ public class JsonSchema {
             throw new InternalException("invalid schema, incorrect 'id' expect a String with pattern '[a-zA-Z0-9_-]+'; id: {}, type: {}",
                     id.getValue(), id.getType());
         } else if (schema == null || !JsonType.NODE.equals(schema.getType())) {
-            throw new InternalException("invalid schema, schema not defined or incorrect");
+            throw new InternalException("invalid schema, schema not defined or incorrect; id: {}", id);
         } else if (children != null && !JsonType.ARRAY.equals(children.getType())) {
-            throw new InternalException("invalid schema, children not defined or incorrect");
+            throw new InternalException("invalid schema, children not defined or incorrect; id: {}", id);
         }
 
         final String schemaId = (String) id.getValue();

@@ -77,7 +77,7 @@ public class Logger {
                 .concat(" - ") //
                 .concat(appender) //
                 .concat(" - ") //
-                .concat(args == null || args.length == 0 ? text : StringUtils.replace(text, args)));
+                .concat(args == null || args.length == 0 ? text : StringUtils.inject(text, args)));
 
         if (throwable != null) {
             throwable.printStackTrace(stream);

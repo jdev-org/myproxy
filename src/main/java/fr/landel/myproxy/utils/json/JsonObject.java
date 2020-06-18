@@ -13,8 +13,21 @@ public class JsonObject<T extends Serializable> implements Serializable {
 
     private final JsonType type;
 
-    // String, Boolean, Integer, Long, Float, Double, Array, Node, ISO8601-Duration, Enumeration, File, URL, Reference
+    // String, Boolean, Long, Double, Null, Array, Node
     private final T value;
+
+    /**
+     * Constructor
+     *
+     * @param parent
+     *            the parent
+     * @category constructor
+     */
+    public JsonObject(final JsonNode parent) {
+        this.parent = parent;
+        this.type = JsonType.UNKNOWN;
+        this.value = null;
+    }
 
     /**
      * Constructor
@@ -31,6 +44,14 @@ public class JsonObject<T extends Serializable> implements Serializable {
         this.parent = parent;
         this.type = type;
         this.value = value;
+        if (value != null && (JsonType.ARRAY.equals(type) || JsonType.NODE.equals(type))) {
+            final Class<?> clazz = this.value.getClass();
+            if (JsonObject.class.equals(clazz)) {
+
+            } else if (JsonNode.class.equals(clazz)) {
+
+            }
+        }
     }
 
     public JsonNode getParent() {
@@ -47,7 +68,7 @@ public class JsonObject<T extends Serializable> implements Serializable {
 
     @Override
     public String toString() {
-        final StringBuilder builder = new StringBuilder();
+        final StringBuilder builder = new StringBuilder(20);
         if (JsonType.STRING.equals(this.type)) {
             builder.append('"').append(this.value).append('"');
         } else {

@@ -42,15 +42,6 @@ public class JsonNode implements Serializable {
         return this.expectArray;
     }
 
-    /**
-     * Constructor
-     *
-     * @category constructor
-     */
-    public JsonNode() {
-        this(null);
-    }
-
     public boolean hasParent() {
         return this.parent != null;
     }
@@ -73,7 +64,7 @@ public class JsonNode implements Serializable {
 
     public <T extends Serializable> JsonNode addChild(final String key) throws InternalException {
         if (!this.children.containsKey(key)) {
-            this.children.put(this.lastKey = key, new JsonObject<>(this, JsonType.UNKNOWN, null));
+            this.children.put(this.lastKey = key, new JsonObject<>(this));
         } else {
             throw new InternalException("Key already exists");
         }
@@ -141,7 +132,7 @@ public class JsonNode implements Serializable {
 
     @Override
     public String toString() {
-        final StringBuilder builder = new StringBuilder().append('{');
+        final StringBuilder builder = new StringBuilder(128).append('{');
         int c = 0;
         for (Entry<String, JsonObject<? extends Serializable>> child : children.entrySet()) {
             if (c++ > 0) {

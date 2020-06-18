@@ -14,13 +14,23 @@ public class JsonSchemaValidator {
 
     public static boolean validates(final JsonSchemaNode schema, final JsonNode json) {
         final var schemaSchema = schema.getSchema();
-        if (schemaSchema.isRequired()) {
-            schemaSchema.getType();
+        if (schemaSchema.isRequired() && json == null) {
+            return false;
         }
 
-        for (var child : schema.getChildren()) {
-            String key = child.getId();
-            boolean required = child.getSchema().isRequired();
+        boolean valid = true;
+
+        switch (schemaSchema.getType()) {
+        case NODE:
+            valid &= checksNode(schema, json);
+            break;
+        case ARRAY:
+
+            break;
+        case REFERENCE:
+
+            break;
+        default:
         }
 
         return false;
@@ -42,9 +52,11 @@ public class JsonSchemaValidator {
         } else if (object != null) {
             if (!jsonType.equals(object.getType())) {
                 return false;
+            } else if (list != null && !list.contains(object.getValue())) {
+                return false;
             }
         }
 
-        return false;
+        return true;
     }
 }

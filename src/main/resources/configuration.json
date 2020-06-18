@@ -80,7 +80,7 @@
 					"id": "habilitation",
 					"single": false,
 					"root": "/habilitations/habilitation",
-					"object": [
+					"objects": [
 						{
 							"id": "key",
 							"single": true,
@@ -109,9 +109,9 @@
 				},
 				{
 					"id": "profile",
-					"type": "unique",
+					"single": true,
 					"root": "/habilitationsGlobal",
-					"object": [
+					"objects": [
 						{
 							"id": "val",
 							"single": false,
@@ -267,7 +267,7 @@
 	],
 	"startup": {
 		"delay": "PT2M",
-		"from": "\\debranchement/$raw/data",
+		"from": "@debranchement/$raw/data",
 		"comment-expected-format": {
 			"id": {
 				"type": "string",
@@ -303,7 +303,7 @@
 	"whitelist": [
 		{
 			"comment": "avoid the call of urls not in the withelist?",
-			"from": "\\proxy/$raw/data"
+			"from": "@proxy/$raw/data"
 		}
 	],
 	"endpoints": [
@@ -330,7 +330,7 @@
 							"Accept": "*/*"
 						},
 						"rules": {
-							"cache-ref": "cas-profile/habilitation",
+							"cache-ref": "@cas-profile/habilitation",
 							"key": "MYAPP",
 							"level": [
 								200,
@@ -341,7 +341,7 @@
 					}
 				],
 				"rules": {
-					"cache-ref": "cas-profile/habilitation",
+					"cache-ref": "@cas-profile/habilitation",
 					"key": "MYAPP",
 					"level": 100
 				}
