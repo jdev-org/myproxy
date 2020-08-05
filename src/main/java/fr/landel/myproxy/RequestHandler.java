@@ -92,7 +92,7 @@ public class RequestHandler implements Runnable {
                 urlString = urlString.substring(0, urlString.indexOf(' '));
 
                 // Prepend http:// if necessary to create correct URL
-                if (!urlString.substring(0, 4).equals("http")) {
+                if (!"http".equals(urlString.substring(0, 4))) {
                     String temp = "http://";
                     urlString = temp + urlString;
                 }
@@ -278,20 +278,24 @@ public class RequestHandler implements Runnable {
             // Compute a logical file name as per schema
             // This allows the files on stored on disk to resemble that of the URL it was taken from
             int fileExtensionIndex = urlString.lastIndexOf(".");
-            String fileExtension;
 
             // Get the type of file
-            fileExtension = urlString.substring(fileExtensionIndex, urlString.length());
+            // TODO this won't work 
+            // example  http://www.google.com/search?q=test&ie=utf-8&oe=utf-8&aq=t&rls=org.mozilla:fr:official&client=firefox-a
+            
+            String fileExtension = urlString.substring(fileExtensionIndex, urlString.length());
 
             // Get the initial file name
-            String fileName = urlString.substring(0, fileExtensionIndex);
-
+            //String fileName = urlString.substring(0, fileExtensionIndex);
+            String fileName = urlString;
+            
             // Trim off http://www. as no need for it in file name
             fileName = fileName.substring(fileName.indexOf('.') + 1);
 
             // Remove any illegal characters from file name
-            fileName = fileName.replace("/", "__");
-            fileName = fileName.replace('.', '_');
+            // TODO make diff beetween Linux and Windows
+            final String illegalCharRegex="[\\\\/:*?\"<>|]";
+            fileName = fileName.replaceAll(illegalCharRegex, "__");
 
             // Trailing / result in index.html of that directory being fetched
             if (fileExtension.contains("/")) {
@@ -299,8 +303,9 @@ public class RequestHandler implements Runnable {
                 fileExtension = fileExtension.replace('.', '_');
                 fileExtension += ".html";
             }
-
-            fileName = fileName + fileExtension;
+            LOG.info("fileExtension : {}", fileExtension);
+            
+           // fileName = fileName + fileExtension;
 
             // Attempt to create File to cache to
             boolean caching = false;
@@ -308,6 +313,8 @@ public class RequestHandler implements Runnable {
             // Create File to cache
             File fileToCache = new File(Proxy.cacheDir, fileName);
 
+            LOG.info("fileToCache : {}", fileToCache);
+            
             if (!fileToCache.exists()) {
                 fileToCache.createNewFile();
             }
