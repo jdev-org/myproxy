@@ -90,6 +90,7 @@ public class Proxy implements Runnable {
 
         // Create array list to hold servicing threads
         servicingThreads = new ArrayList<>();
+        
 
         // Start dynamic manager on a separate thread.
         new Thread(this).start(); // Starts overriden run() method at bottom

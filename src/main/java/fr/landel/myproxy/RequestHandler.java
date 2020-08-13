@@ -13,12 +13,19 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.ProxySelector;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Iterator;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 
+import fr.landel.myproxy.proxypac.ProxyPac;
 import fr.landel.myproxy.utils.Logger;
 
 public class RequestHandler implements Runnable {
@@ -91,6 +98,13 @@ public class RequestHandler implements Runnable {
                 // Remove everything past next space
                 urlString = urlString.substring(0, urlString.indexOf(' '));
 
+                // Check if proxypac exist 
+                // depend on OS
+                ProxyPac pp = new ProxyPac();
+                String proxies =  pp.readProxyPacContent("http://127.0.0.1:50175/proxy.pac", new URI(urlString));
+                
+                LOG.info("Proxies List {}", proxies);
+
                 // Prepend http:// if necessary to create correct URL
                 if (!"http".equals(urlString.substring(0, 4))) {
                     String temp = "http://";
@@ -150,7 +164,10 @@ public class RequestHandler implements Runnable {
             e.printStackTrace();
             LOG.error("Error reading request from client, for: {}", requestString);
 
-        } finally {
+        } catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
             LOG.info("Request '{}' handled in: {}\n", urlString, Proxy.getTime(System.currentTimeMillis() - start));
         }
     }
