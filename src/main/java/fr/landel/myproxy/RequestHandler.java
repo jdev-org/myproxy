@@ -98,12 +98,28 @@ public class RequestHandler implements Runnable {
                 // Remove everything past next space
                 urlString = urlString.substring(0, urlString.indexOf(' '));
 
-                // Check if proxypac exist 
-                // depend on OS
-                ProxyPac pp = new ProxyPac();
-                String proxies =  pp.readProxyPacContent("http://127.0.0.1:50175/proxy.pac", new URI(urlString));
-                
-                LOG.info("Proxies List {}", proxies);
+    
+                System.setProperty("java.net.useSystemProxies", "true");
+                LOG.info("detecting proxies");
+                List l = ProxySelector.getDefault().select(new URI(urlString));
+
+                if (l != null) {
+                    for (Iterator iter = l.iterator(); iter.hasNext();) {
+                        java.net.Proxy proxy = (java.net.Proxy) iter.next();
+                        LOG.info("proxy type: " + proxy.type());
+
+                        InetSocketAddress addr = (InetSocketAddress) proxy.address();
+
+                        if (addr == null) {
+                        	LOG.info("No Proxy");
+                        } else {
+                        	LOG.info("proxy hostname: " + addr.getHostName());
+                        	LOG.info("http.proxyHost", addr.getHostName());
+                        	LOG.info("proxy port: " + addr.getPort());
+                        	LOG.info("http.proxyPort", Integer.toString(addr.getPort()));
+                        }
+                    }
+                }
 
                 // Prepend http:// if necessary to create correct URL
                 if (!"http".equals(urlString.substring(0, 4))) {
