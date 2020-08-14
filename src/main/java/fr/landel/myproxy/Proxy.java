@@ -6,6 +6,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.Authenticator;
+import java.net.PasswordAuthentication;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -39,7 +41,7 @@ public class Proxy implements Runnable {
 
     // Main method for the program
     public static void main(String[] args) {
-        long start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();  	
 
         // Create an instance of Proxy and begin listening for connections
         Proxy myProxy = new Proxy(3128);
@@ -91,6 +93,24 @@ public class Proxy implements Runnable {
         // Create array list to hold servicing threads
         servicingThreads = new ArrayList<>();
         
+        // In order to use proxypac or configured system proxy
+        System.setProperty("java.net.useSystemProxies", "true");
+        
+        // get user information
+    	String authUser =  System.getProperty("myproxy.username");
+    	String authPassword  =  System.getProperty("myproxy.password");
+    	
+    	// only add authentifcation if need
+    	if(authUser != null && authPassword != null) {
+    		LOG.info("User found, add authenticator to request");
+	    	Authenticator.setDefault(
+	    			new Authenticator() {
+	    				public PasswordAuthentication getPasswordAuthentication() {
+	    					return new PasswordAuthentication(authUser, authPassword.toCharArray());
+	    				}
+	    			}
+	    			);
+    	}
 
         // Start dynamic manager on a separate thread.
         new Thread(this).start(); // Starts overriden run() method at bottom
@@ -250,6 +270,7 @@ public class Proxy implements Runnable {
      *            File Object pointing to File put in cache
      */
     public static void addCachedPage(String urlString, File fileToCache) {
+    	LOG.info("Add file {} in cache for url {} ", fileToCache.getAbsolutePath(), urlString);
         cache.put(urlString, fileToCache);
     }
 

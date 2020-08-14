@@ -11,9 +11,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.net.Authenticator;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.PasswordAuthentication;
 import java.net.ProxySelector;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
@@ -24,8 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import javax.imageio.ImageIO;
-
-import fr.landel.myproxy.proxypac.ProxyPac;
 import fr.landel.myproxy.utils.Logger;
 
 public class RequestHandler implements Runnable {
@@ -83,10 +83,20 @@ public class RequestHandler implements Runnable {
         final long start = System.currentTimeMillis();
 
         try {
+        	
+        	// https test 
+        	//HTTPReqHeader request = new HTTPReqHeader();
+            //request.parse(clientSocket); // I read and parse the HTTP request here
+            //if(request.isSecure()){
+        	//	LOG.info("requete https");
+            //}
+            
             requestString = proxyToClientBr.readLine();
 
             // Parse out URL
             if (requestString != null) {
+            	
+            	// TODO see why https requests are not seeing, might have some tunelling protocol to respond
                 LOG.info("Request Received {}", requestString);
 
                 // Get the Request type
@@ -97,36 +107,14 @@ public class RequestHandler implements Runnable {
 
                 // Remove everything past next space
                 urlString = urlString.substring(0, urlString.indexOf(' '));
-
-    
-                System.setProperty("java.net.useSystemProxies", "true");
-                LOG.info("detecting proxies");
-                List l = ProxySelector.getDefault().select(new URI(urlString));
-
-                if (l != null) {
-                    for (Iterator iter = l.iterator(); iter.hasNext();) {
-                        java.net.Proxy proxy = (java.net.Proxy) iter.next();
-                        LOG.info("proxy type: " + proxy.type());
-
-                        InetSocketAddress addr = (InetSocketAddress) proxy.address();
-
-                        if (addr == null) {
-                        	LOG.info("No Proxy");
-                        } else {
-                        	LOG.info("proxy hostname: " + addr.getHostName());
-                        	LOG.info("http.proxyHost", addr.getHostName());
-                        	LOG.info("proxy port: " + addr.getPort());
-                        	LOG.info("http.proxyPort", Integer.toString(addr.getPort()));
-                        }
-                    }
-                }
-
+               
                 // Prepend http:// if necessary to create correct URL
                 if (!"http".equals(urlString.substring(0, 4))) {
                     String temp = "http://";
                     urlString = temp + urlString;
                 }
 
+                // ????
                 if (urlString.indexOf("%3Ctoken%3E") > -1) {
                     urlString = urlString.replace("%3Ctoken%3E", "1223456");
                 }
@@ -155,10 +143,35 @@ public class RequestHandler implements Runnable {
                     return;
                 }
 
+                URI uri = new URI(urlString);
+                
+                // get all proxy url from system proxy
+                List<java.net.Proxy> proxies = ProxySelector.getDefault().select(uri);
+                if (proxies != null) {
+                    for (Iterator iter = proxies.iterator(); iter.hasNext();) {
+                    	java.net.Proxy proxy = (java.net.Proxy) iter.next();
+                        LOG.info("proxy type : {} ", proxy.type());
+
+                        InetSocketAddress addr  = (InetSocketAddress) proxy.address();
+
+                        if (addr == null) {
+                        	LOG.info("No Proxy");
+                        } else {
+                        	LOG.info("proxy hostname : {} ", addr.getHostName());
+                        	LOG.info("http.proxyHost {} ", addr.getHostName());
+                        	LOG.info("proxy port {} ", addr.getPort());
+                        	LOG.info("http.proxyPort : {}", Integer.toString(addr.getPort()));
+                        }
+                    }
+                }
+                
                 // Check request type
                 if (request.equals("CONNECT")) {
-                    LOG.info("HTTPS Request for: {}\n", urlString);
-                    handleHTTPSRequest(urlString);
+                    LOG.info("HTTPS Request for: {}\n", uri.toString());
+                    LOG.info("detecting proxies");
+                    
+                    // TODO add fallback on proxies list
+                    handleHTTPSRequest(uri, proxies.get(0));
                 }
 
                 else {
@@ -169,8 +182,11 @@ public class RequestHandler implements Runnable {
                     // sendCachedPageToClient(file);
                     //
                     // } else {
+                    
                     LOG.info("HTTP GET for: {}", urlString);
-                    sendNonCachedToClient(urlString);
+                	// TODO get all proxy from list and create fallback if needed  
+                    // see to change urlString in URI
+                    sendNonCachedToClient(urlString, proxies.get(0));
                     // }
                 }
             } else {
@@ -179,10 +195,9 @@ public class RequestHandler implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
             LOG.error("Error reading request from client, for: {}", requestString);
-
         } catch (URISyntaxException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			 LOG.error("Error in url syntaxe, for: {}", urlString);
 		} finally {
             LOG.info("Request '{}' handled in: {}\n", urlString, Proxy.getTime(System.currentTimeMillis() - start));
         }
@@ -304,7 +319,7 @@ public class RequestHandler implements Runnable {
      * @param urlString
      *            URL ofthe file requested
      */
-    private void sendNonCachedToClient(String urlString) {
+    private void sendNonCachedToClient(String urlString, java.net.Proxy proxy) {
 
         try {
 
@@ -312,10 +327,9 @@ public class RequestHandler implements Runnable {
             // This allows the files on stored on disk to resemble that of the URL it was taken from
             int fileExtensionIndex = urlString.lastIndexOf(".");
 
-            // Get the type of file
-            // TODO this won't work 
-            // example  http://www.google.com/search?q=test&ie=utf-8&oe=utf-8&aq=t&rls=org.mozilla:fr:official&client=firefox-a
-            
+            // Get the type of file   
+            // TODO this won't work properly lots of specific case are to be check 
+            // probably at least two dots are needed to get an file extenssion
             String fileExtension = urlString.substring(fileExtensionIndex, urlString.length());
 
             // Get the initial file name
@@ -359,7 +373,8 @@ public class RequestHandler implements Runnable {
                         || fileExtension.contains(".gif")) {
                     // Create the URL
                     URL remoteURL = new URL(urlString);
-                    BufferedImage image = ImageIO.read(remoteURL);
+                    // TODO this doesn't work on redirect ( http 301)
+                    BufferedImage image = ImageIO.read(remoteURL.openConnection(proxy).getInputStream());
 
                     if (image != null) {
                         // Cache the image to disk
@@ -389,7 +404,7 @@ public class RequestHandler implements Runnable {
                     // Create the URL
                     URL remoteURL = new URL(urlString);
                     // Create a connection to remote server
-                    HttpURLConnection proxyToServerCon = (HttpURLConnection) remoteURL.openConnection();
+                    HttpURLConnection proxyToServerCon = (HttpURLConnection) remoteURL.openConnection(proxy);
                     proxyToServerCon.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
                     proxyToServerCon.setRequestProperty("Content-Language", "en-US");
                     proxyToServerCon.setUseCaches(false);
@@ -443,13 +458,10 @@ public class RequestHandler implements Runnable {
      * @param urlString
      *            desired file to be transmitted over https
      */
-    private void handleHTTPSRequest(String urlString) {
+    private void handleHTTPSRequest(URI url, java.net.Proxy proxy) {
         // Extract the URL and port of remote
-        String url = urlString.substring(7);
-        String pieces[] = url.split(":");
-        url = pieces[0];
-        int port = Integer.valueOf(pieces[1]);
-
+        int port = url.getPort();
+        
         try {
             // Only first line of HTTPS request has been read at this point (CONNECT *)
             // Read (and throw away) the rest of the initial data on the stream
@@ -458,10 +470,13 @@ public class RequestHandler implements Runnable {
             }
 
             // Get actual IP associated with this URL through DNS
-            InetAddress address = InetAddress.getByName(url);
+            InetAddress address = InetAddress.getByName(url.toURL().toString());
 
             // Open a socket to the remote server
-            try (Socket proxyToServerSocket = new Socket(address, port)) {
+            try (
+            		
+            	Socket proxyToServerSocket = new Socket(address, port)) {
+            //	Socket proxyToServerSocket = new Socket(proxy)) {
                 proxyToServerSocket.setSoTimeout(30_000);
 
                 // Send Connection established to the client
@@ -521,7 +536,7 @@ public class RequestHandler implements Runnable {
                 ioe.printStackTrace();
             }
         } catch (Exception e) {
-            LOG.error("Error on HTTPS: {}", urlString);
+            LOG.error("Error on HTTPS: {}", url.toString());
             e.printStackTrace();
         }
     }
